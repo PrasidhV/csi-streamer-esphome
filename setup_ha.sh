@@ -18,6 +18,9 @@ echo "  csi_streamer.cpp: $(wc -c < csi_streamer.cpp) bytes"
 curl -sL "https://raw.githubusercontent.com/PrasidhV/csi-streamer-esphome/master/components/csi_streamer/library.json" > library.json
 echo "  library.json: $(wc -c < library.json) bytes"
 
+curl -sL "https://raw.githubusercontent.com/PrasidhV/csi-streamer-esphome/master/components/csi_streamer/sdkconfig.defaults" > sdkconfig.defaults
+echo "  sdkconfig.defaults: $(wc -c < sdkconfig.defaults) bytes"
+
 echo ""
 echo "Verifying files..."
 ls -la
