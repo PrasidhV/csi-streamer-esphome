@@ -24,7 +24,7 @@ CSIStreamer = csi_streamer_ns.class_("CSIStreamer", cg.Component)
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(CSIStreamer),
-    cv.Optional(CONF_DESTINATION_HOST, default="192.168.68.1"): cv.ipv4address,
+    cv.Optional(CONF_DESTINATION_HOST, default="192.168.68.1"): cv.string,
     cv.Optional(CONF_DESTINATION_PORT, default=5000): cv.port,
     cv.Optional(CONF_SAMPLE_RATE, default=100): cv.int_range(min=1, max=1000),
 }).extend(cv.COMPONENT_SCHEMA)
