@@ -1,10 +1,12 @@
 """
 CSI Streamer External Component for ESPHome
 Captures raw WiFi CSI data and streams via UDP.
+
+Based on Espressif esp-csi reference implementation:
+https://github.com/espressif/esp-csi
 """
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.const import CONF_ID, CONF_PORT
 
 CODEOWNERS = ["@custom"]
@@ -25,8 +27,6 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional(CONF_SAMPLE_RATE, default=100): cv.int_range(min=1, max=1000),
 }).extend(cv.COMPONENT_SCHEMA)
 
-FLAG_CSI = "-DCONFIG_ESP_WIFI_CSI_ENABLED=y"
-FLAG_BA_WIN = "-DCONFIG_ESP_WIFI_RX_BA_WIN=4"
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
@@ -37,13 +37,15 @@ async def to_code(config):
     ))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
 
-    # Use PlatformIO build flags to inject defines that ESPHome's sdkconfig
-    # doesn't provide by default. This avoids redefinition warnings from
-    # sdkconfig.h and ensures these macros are available before any headers
-    # are processed by the compiler.
+    # ESP32 CSI + WiFi build flags
+    # These are applied via PlatformIO build_flags to ensure they are
+    # available before any ESP-IDF headers are processed.
     #
-    # Only CSI and RX_BA_WIN are needed—these are required for CSI to compile
-    # and for the WiFi macro WIFI_INIT_CONFIG_DEFAULT() to not fail.
-    # PM, AMPDU, buffer settings—let ESPHome use its defaults; overriding them
-    # previously caused both PM linking errors and redefinition warnings.
-    cg.add_platformio_option("build_flags", [FLAG_CSI, FLAG_BA_WIN])
+    # CONFIG_ESP_WIFI_CSI_ENABLED=y — enables CSI in ESP-IDF
+    # CONFIG_ESP_WIFI_RX_BA_WIN=4    — required by WIFI_INIT_CONFIG_DEFAULT() in ESP-IDF 5.5.x
+    # CONFIG_ESP_WIFI_AMPDU_TX_ENABLED=n — disables TX AMPDU (ESPectre recommendation)
+    cg.add_platformio_option("build_flags", [
+        "-DCONFIG_ESP_WIFI_CSI_ENABLED=y",
+        "-DCONFIG_ESP_WIFI_RX_BA_WIN=4",
+        "-DCONFIG_ESP_WIFI_AMPDU_TX_ENABLED=n",
+    ])

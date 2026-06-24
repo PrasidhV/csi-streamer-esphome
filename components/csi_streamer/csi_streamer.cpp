@@ -31,10 +31,16 @@ void CSIStreamer::setup() {
     }
     dest_addr_.sin_addr.s_addr = addr.addr;
     
+    // ESP32 CSI configuration based on Espressif esp-csi reference
     wifi_csi_config_t csi_config;
     memset(&csi_config, 0, sizeof(csi_config));
     csi_config.lltf_en = 1;
     csi_config.htltf_en = 1;
+    csi_config.stbc_htltf2_en = 1;
+    csi_config.ltf_merge_en = 1;
+    csi_config.channel_filter_en = 1;
+    csi_config.manu_scale = 0;
+    csi_config.shift = 0;
     
     esp_err_t err = esp_wifi_set_csi_config(&csi_config);
     if (err != ESP_OK) {
@@ -72,13 +78,14 @@ void CSIStreamer::process_csi(wifi_csi_info_t *info) {
     if (info == nullptr || info->buf == nullptr) return;
     
     CSIPacketHeader header;
-    header.magic = 0x43534920;
+    header.magic = 0x43534920;  // "CSI "
     header.sequence = sequence_++;
     header.timestamp_us = esp_timer_get_time();
     memcpy(header.mac, info->mac, 6);
     header.rssi = info->rx_ctrl.rssi;
     header.num_subcarriers = 52;
     
+    // Extract CSI data for each subcarrier
     int16_t *csi_buf = reinterpret_cast<int16_t *>(info->buf);
     int num_sc = std::min(52, (int)info->len / 2);
     
