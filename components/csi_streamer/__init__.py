@@ -38,9 +38,11 @@ async def to_code(config):
     ))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
 
-    # No custom build flags needed.
-    # ESPHome's ESP-IDF integration handles all the sdkconfig options for CSI.
-    # Adding -D flags causes redefinition warnings (sdkconfig.h already defines them)
-    # and can break linking of PM functions (esp_pm_impl_idle_hook, etc).
-    # The ESP32 CSI config is set directly in C++ via esp_wifi_set_csi_config().
+    # Enable PM (required for freertos_hooks.c to compile - calls esp_pm_impl_idle_hook)
+    # but disable WiFi-specific PM features that conflict with CSI
+    add_idf_sdkconfig_option("CONFIG_PM_ENABLE", True)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_CSI_ENABLED", True)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STA_DISCONNECTED_PM_ENABLE", False)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_TX_ENABLED", False)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_RX_ENABLED", False)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM", 128)

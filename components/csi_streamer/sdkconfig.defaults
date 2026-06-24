@@ -1,3 +1,6 @@
 
 # Fix ESP-IDF 5.5.4 missing define
 CONFIG_ESP_WIFI_RX_BA_WIN=4
+
+# Enable PM module (required for freertos_hooks.c - esp_pm_impl_idle_hook)
+CONFIG_PM_ENABLE=y
