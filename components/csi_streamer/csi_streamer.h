@@ -1,27 +1,22 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/core/log.h"
 #include "esp_wifi.h"
 #include "lwip/sockets.h"
 #include "lwip/netdb.h"
-#include <cstring>
-#include <cmath>
+#include <string>
 
 namespace esphome {
 namespace csi_streamer {
 
-static const char *const TAG = "csi_streamer";
-
-// CSI packet header for UDP streaming
 struct __attribute__((packed)) CSIPacketHeader {
-    uint32_t magic;          // 0x43534920 = "CSI "
-    uint32_t sequence;       // Packet sequence number
-    uint64_t timestamp_us;   // Microsecond timestamp
-    uint8_t mac[6];          // Source MAC address
-    int8_t rssi;             // RSSI in dBm
-    uint8_t num_subcarriers; // Number of subcarriers
-    uint8_t data[52];        // Amplitude per subcarrier (normalized 0-255)
+    uint32_t magic;
+    uint32_t sequence;
+    uint64_t timestamp_us;
+    uint8_t mac[6];
+    int8_t rssi;
+    uint8_t num_subcarriers;
+    uint8_t data[52];
 };
 
 class CSIStreamer : public Component {
