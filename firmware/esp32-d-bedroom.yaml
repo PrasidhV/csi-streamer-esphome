@@ -24,6 +24,10 @@ api:
 ota:
   - platform: esphome
 
+platformio_options:
+  build_flags:
+    - -DCONFIG_ESP_WIFI_RX_BA_WIN=4
+
 logger:
   level: INFO
   baud_rate: 115200

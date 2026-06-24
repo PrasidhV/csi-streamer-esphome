@@ -22,6 +22,15 @@ curl -sL "https://raw.githubusercontent.com/PrasidhV/csi-streamer-esphome/master
 echo "  sdkconfig.defaults: $(wc -c < sdkconfig.defaults) bytes"
 
 echo ""
+echo "IMPORTANT: Add this to your firmware yaml to fix CONFIG_ESP_WIFI_RX_BA_WIN:"
+echo ""
+echo "  platformio_options:"
+echo "    build_flags:"
+echo "      - \"-DCONFIG_ESP_WIFI_RX_BA_WIN=4\""
+echo ""
+echo "Add it after the 'ota:' section in /config/esphome/esp32-d-bedroom.yaml"
+
+echo ""
 echo "IMPORTANT: After this script completes, delete sdkconfig.defaults to avoid redefinition warnings."
 echo "The settings are already applied via __init__.py add_idf_sdkconfig_option() calls."
 echo "Run: rm /config/esphome/components/csi_streamer/sdkconfig.defaults"

@@ -15,6 +15,9 @@
     "srcFilter": [
       "+<*.cpp>",
       "+<*.h>"
+    ],
+    "extra_flags": [
+      "-DCONFIG_ESP_WIFI_RX_BA_WIN=4"
     ]
   },
   "dependencies": []
