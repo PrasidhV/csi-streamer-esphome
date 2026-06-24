@@ -5,6 +5,8 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  build_flags:
+    - -DCONFIG_ESP_WIFI_RX_BA_WIN=4
 esp32:
   board: esp32dev
   framework:
