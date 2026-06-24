@@ -7,6 +7,7 @@ https://github.com/espressif/esp-csi
 """
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.const import CONF_ID, CONF_PORT
 
 CODEOWNERS = ["@custom"]
@@ -37,15 +38,9 @@ async def to_code(config):
     ))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
 
-    # ESP32 CSI + WiFi build flags
-    # These are applied via PlatformIO build_flags to ensure they are
-    # available before any ESP-IDF headers are processed.
-    #
-    # CONFIG_ESP_WIFI_CSI_ENABLED=y — enables CSI in ESP-IDF
-    # CONFIG_ESP_WIFI_RX_BA_WIN=4    — required by WIFI_INIT_CONFIG_DEFAULT() in ESP-IDF 5.5.x
-    # CONFIG_ESP_WIFI_AMPDU_TX_ENABLED=n — disables TX AMPDU (ESPectre recommendation)
-    cg.add_platformio_option("build_flags", [
-        "-DCONFIG_ESP_WIFI_CSI_ENABLED=y",
-        "-DCONFIG_ESP_WIFI_RX_BA_WIN=4",
-        "-DCONFIG_ESP_WIFI_AMPDU_TX_ENABLED=n",
-    ])
+    # No custom build flags needed.
+    # ESPHome's ESP-IDF integration handles all the sdkconfig options for CSI.
+    # Adding -D flags causes redefinition warnings (sdkconfig.h already defines them)
+    # and can break linking of PM functions (esp_pm_impl_idle_hook, etc).
+    # The ESP32 CSI config is set directly in C++ via esp_wifi_set_csi_config().
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_CSI_ENABLED", True)
