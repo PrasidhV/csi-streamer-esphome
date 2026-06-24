@@ -40,10 +40,13 @@ async def to_code(config):
     ))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
     
-    # Add ESP-IDF CSI configuration (same as ESPectre)
+    # Add ESP-IDF CSI configuration
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_CSI_ENABLED", True)
     add_idf_sdkconfig_option("CONFIG_PM_ENABLE", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STA_DISCONNECTED_PM_ENABLE", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_TX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_RX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM", 128)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_RX_BA_WIN", 4)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM", 16)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM", 32)
