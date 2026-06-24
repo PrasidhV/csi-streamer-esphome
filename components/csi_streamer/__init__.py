@@ -7,7 +7,7 @@ Source: /home/agent/csi_streamer/
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import wifi
-from esphome.components.esp32 import add_idf_sdkconfig_option, add_extra_build_file
+from esphome.components.esp32 import add_idf_sdkconfig_option, add_extra_build_file, RawSdkconfigValue
 from esphome.const import CONF_ID, CONF_PORT
 from esphome.core import CORE
 
@@ -47,7 +47,7 @@ async def to_code(config):
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_TX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_RX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM", 128)
-    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_RX_BA_WIN", 4)
+    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_RX_BA_WIN", RawSdkconfigValue(4))
     
     # Fix: ESP-IDF 5.5.4 removed CONFIG_ESP_WIFI_RX_BA_WIN from sdkconfig defaults
     # but WIFI_INIT_CONFIG_DEFAULT() still references it. Provide it via sdkconfig.defaults.
