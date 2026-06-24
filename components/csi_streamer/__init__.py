@@ -27,12 +27,6 @@ CONFIG_SCHEMA = cv.Schema({
 
 FLAG_CSI = "-DCONFIG_ESP_WIFI_CSI_ENABLED=y"
 FLAG_BA_WIN = "-DCONFIG_ESP_WIFI_RX_BA_WIN=4"
-FLAGS_PM = [
-    "-DCONFIG_PM_ENABLE=n",
-    "-DCONFIG_ESP_WIFI_STA_DISCONNECTED_PM_ENABLE=n",
-    "-DCONFIG_ESP_WIFI_AMPDU_TX_ENABLED=n",
-    "-DCONFIG_ESP_WIFI_AMPDU_RX_ENABLED=n",
-]
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
@@ -43,13 +37,13 @@ async def to_code(config):
     ))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
 
-    # These target the build environment — safe on all ESP-IDF versions.
-    cg.add_platformio_option("build_flags", [
-        FLAG_CSI,
-        FLAG_BA_WIN,
-        # The remaining buffer settings have caused redefinition warnings on
-        # ESP-IDF 5.5.x (CONFIG_ESP_WIFI_CSI_ENABLED is already set by the
-        # sdkconfig processor when you enable CSI) or are simply not needed.
-        # Keeping the flags to a minimum avoids both the compile error and
-        # unnecessary configuration.
-    ])
+    # Use PlatformIO build flags to inject defines that ESPHome's sdkconfig
+    # doesn't provide by default. This avoids redefinition warnings from
+    # sdkconfig.h and ensures these macros are available before any headers
+    # are processed by the compiler.
+    #
+    # Only CSI and RX_BA_WIN are needed—these are required for CSI to compile
+    # and for the WiFi macro WIFI_INIT_CONFIG_DEFAULT() to not fail.
+    # PM, AMPDU, buffer settings—let ESPHome use its defaults; overriding them
+    # previously caused both PM linking errors and redefinition warnings.
+    cg.add_platformio_option("build_flags", [FLAG_CSI, FLAG_BA_WIN])
