@@ -4,12 +4,9 @@
 #include "lwip/sockets.h"
 #include "lwip/netdb.h"
 #include <cstring>
-#include <cmath>
 
 namespace esphome {
 namespace csi_streamer {
-
-
 
 // Raw CSI buffer size: 52 subcarriers * 2 (real+imag) * 2 bytes = 208 bytes
 static const int RAW_BUF_SIZE = 52 * 2 * 2;
@@ -110,13 +107,26 @@ void CSIStreamer::process_csi() {
     header.num_subcarriers = 52;
     
     int16_t *csi_buf = reinterpret_cast<int16_t *>(csi_info_.raw_buf);
-    int num_sc = std::min(52, (int)csi_info_.buf_len / 2);
+    int num_sc = (csi_info_.buf_len < 104) ? (csi_info_.buf_len / 2) : 52;
     
     for (int i = 0; i < num_sc; i++) {
         int16_t real = csi_buf[i * 2];
         int16_t imag = csi_buf[i * 2 + 1];
-        float amplitude = sqrtf((float)real * real + (float)imag * imag);
-        header.data[i] = (uint8_t)(amplitude > 255.0f ? 255 : (int)amplitude);
+        // Integer approximation of amplitude (no sqrtf needed)
+        int32_t amp = (int32_t)real * real + (int32_t)imag * imag;
+        // Fast approximate sqrt
+        if (amp > 65025) {  // 255^2
+            header.data[i] = 255;
+        } else {
+            // Integer sqrt approximation
+            int32_t x = amp;
+            int32_t y = (x + 1) / 2;
+            while (y < x) {
+                x = y;
+                y = (x + amp / x) / 2;
+            }
+            header.data[i] = (uint8_t)(x > 255 ? 255 : x);
+        }
     }
     
     for (int i = num_sc; i < 52; i++) {
