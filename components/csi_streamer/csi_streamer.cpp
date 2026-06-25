@@ -9,7 +9,7 @@
 namespace esphome {
 namespace csi_streamer {
 
-static const char *const TAG = "csi_streamer";
+
 
 // Raw CSI buffer size: 52 subcarriers * 2 (real+imag) * 2 bytes = 208 bytes
 static const int RAW_BUF_SIZE = 52 * 2 * 2;
