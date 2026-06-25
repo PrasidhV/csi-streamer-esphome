@@ -5,14 +5,11 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
-  build_flags:
-    - -DCONFIG_ESP_WIFI_RX_BA_WIN=4
+
 esp32:
   board: esp32dev
   framework:
     type: esp-idf
-    sdkconfig_options:
-      CONFIG_ESP_WIFI_RX_BA_WIN: "4"
 
 wifi:
   ssid: !secret wifi_ssid

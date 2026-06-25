@@ -46,5 +46,4 @@ async def to_code(config):
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_TX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_RX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM", 128)
-    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_RX_BA_WIN", 4)
-    add_idf_sdkconfig_option("CONFIG_ESP_WIFI_RX_IRAM_OPT", True)
+    # CONFIG_ESP_WIFI_RX_BA_WIN is set via sdkconfig.defaults to avoid redefinition
