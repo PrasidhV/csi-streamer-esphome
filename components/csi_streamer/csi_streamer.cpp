@@ -8,13 +8,11 @@
 namespace esphome {
 namespace csi_streamer {
 
-// Raw CSI buffer size: 52 subcarriers * 2 (real+imag) * 2 bytes = 208 bytes
 static const int RAW_BUF_SIZE = 52 * 2 * 2;
 
 void CSIStreamer::setup() {
     ESP_LOGI(TAG, "CSI Streamer setup");
     
-    // Create UDP socket
     sock_fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock_fd_ < 0) {
         ESP_LOGE(TAG, "Failed to create UDP socket: %d", errno);
@@ -36,58 +34,57 @@ void CSIStreamer::setup() {
     
     setup_complete_ = true;
     
-    ESP_LOGI(TAG, "CSI Streamer initialized, streaming to %s:%d",
+    ESP_LOGI(TAG, "Socket created, streaming to %s:%d",
              destination_host_.c_str(), destination_port_);
 }
 
 void CSIStreamer::loop() {
-    if (!csi_enabled_) {
-        // Delay CSI enable to ensure WiFi is fully ready
-        csi_enabled_ = true;
-        
-        wifi_csi_config_t csi_config;
-        memset(&csi_config, 0, sizeof(csi_config));
-        csi_config.lltf_en = 1;
-        csi_config.htltf_en = 1;
-        csi_config.stbc_htltf2_en = 1;
-        csi_config.ltf_merge_en = 1;
-        csi_config.channel_filter_en = 1;
-        csi_config.manu_scale = 0;
-        csi_config.shift = 0;
-        
-        esp_err_t err = esp_wifi_set_csi_config(&csi_config);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to configure CSI: %s", esp_err_to_name(err));
-            return;
-        }
-        
-        err = esp_wifi_set_csi_rx_cb(&csi_callback, this);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to set CSI callback: %s", esp_err_to_name(err));
-            return;
-        }
-        
-        err = esp_wifi_set_csi(true);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to enable CSI: %s", esp_err_to_name(err));
-            return;
-        }
-        
-        ESP_LOGI(TAG, "CSI enabled");
+    if (!setup_complete_ || csi_enabled_) return;
+    
+    // Wait for WiFi to be connected before enabling CSI
+    wifi_ap_record_t ap_info;
+    if (esp_wifi_sta_get_ap_info(&ap_info) != ESP_OK) {
+        return;  // WiFi not connected yet
+    }
+    
+    ESP_LOGI(TAG, "WiFi connected, enabling CSI");
+    
+    wifi_csi_config_t csi_config;
+    memset(&csi_config, 0, sizeof(csi_config));
+    csi_config.lltf_en = 1;
+    csi_config.htltf_en = 1;
+    csi_config.stbc_htltf2_en = 1;
+    csi_config.ltf_merge_en = 1;
+    csi_config.channel_filter_en = 1;
+    csi_config.manu_scale = 0;
+    csi_config.shift = 0;
+    
+    esp_err_t err = esp_wifi_set_csi_config(&csi_config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "CSI config failed: %s", esp_err_to_name(err));
         return;
     }
     
-    if (has_new_csi_) {
-        has_new_csi_ = false;
-        process_csi();
+    err = esp_wifi_set_csi_rx_cb(&csi_callback, this);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "CSI callback failed: %s", esp_err_to_name(err));
+        return;
     }
+    
+    err = esp_wifi_set_csi(true);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "CSI enable failed: %s", esp_err_to_name(err));
+        return;
+    }
+    
+    csi_enabled_ = true;
+    ESP_LOGI(TAG, "CSI Streamer initialized");
 }
 
-// Called from ISR
 void CSIStreamer::csi_callback(void *ctx, wifi_csi_info_t *info) {
     CSIStreamer *self = static_cast<CSIStreamer *>(ctx);
     
-    if (!self->setup_complete_ || !self->csi_enabled_) return;
+    if (!self->csi_enabled_) return;
     if (info == nullptr || info->buf == nullptr) return;
     
     self->csi_info_.buf_len = info->len;
