@@ -11,7 +11,7 @@ namespace csi_streamer {
 static const int RAW_BUF_SIZE = 52 * 2 * 2;
 
 void CSIStreamer::setup() {
-    ESP_LOGI(TAG, "CSI Streamer setup (deferred to loop)");
+    ESP_LOGI(TAG, "CSI Streamer setup (deferred)");
 }
 
 void CSIStreamer::loop() {
@@ -23,13 +23,15 @@ void CSIStreamer::loop() {
         return;
     }
     
-    // Wait a few loops for WiFi to stabilize
-    if (wifi_wait_count_ < 3) {
-        wifi_wait_count_++;
+    // Wait for WiFi to be connected before enabling CSI
+    wifi_ap_record_t ap_info;
+    esp_err_t wifi_err = esp_wifi_sta_get_ap_info(&ap_info);
+    if (wifi_err != ESP_OK) {
+        ESP_LOGI(TAG, "WiFi not connected yet (err=%d), waiting...", wifi_err);
         return;
     }
     
-    ESP_LOGI(TAG, "Initializing CSI streamer");
+    ESP_LOGI(TAG, "WiFi connected! Initializing CSI streamer");
     
     sock_fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock_fd_ < 0) {
@@ -79,7 +81,8 @@ void CSIStreamer::loop() {
     }
     
     csi_enabled_ = true;
-    ESP_LOGI(TAG, "CSI enabled, streaming to %s:%d", destination_host_.c_str(), destination_port_);
+    ESP_LOGI(TAG, "CSI Streamer initialized! Streaming to %s:%d", 
+             destination_host_.c_str(), destination_port_);
 }
 
 void CSIStreamer::csi_callback(void *ctx, wifi_csi_info_t *info) {

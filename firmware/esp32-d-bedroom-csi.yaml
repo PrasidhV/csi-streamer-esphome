@@ -12,8 +12,8 @@ esp32:
     type: esp-idf
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: "Birchwood_1602"
+  password: "Siva@9686770940_1602"
   ap:
     ssid: "${device_name} Fallback"
     password: "fallback456"
@@ -26,7 +26,7 @@ ota:
   - platform: esphome
 
 logger:
-  level: INFO
+  level: DEBUG
   baud_rate: 115200
 
 external_components:

@@ -58,7 +58,6 @@ class CSIStreamer : public Component {
   CSIInfo csi_info_;
   bool csi_enabled_ = false;
   bool has_new_csi_ = false;
-  int wifi_wait_count_ = 0;
 };
 
 }  // namespace csi_streamer
