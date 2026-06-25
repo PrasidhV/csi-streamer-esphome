@@ -14,6 +14,7 @@ static const char *const TAG = "csi_streamer";
 void CSIStreamer::setup() {
     ESP_LOGI(TAG, "CSI Streamer setup");
     
+    // Create UDP socket FIRST before enabling CSI
     sock_fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock_fd_ < 0) {
         ESP_LOGE(TAG, "Failed to create UDP socket: %d", errno);
@@ -27,11 +28,13 @@ void CSIStreamer::setup() {
     ip4_addr_t addr;
     if (!ip4addr_aton(destination_host_.c_str(), &addr)) {
         ESP_LOGE(TAG, "Invalid destination IP: %s", destination_host_.c_str());
+        close(sock_fd_);
+        sock_fd_ = -1;
         return;
     }
     dest_addr_.sin_addr.s_addr = addr.addr;
     
-    // ESP32 CSI configuration based on Espressif esp-csi reference
+    // Configure WiFi CSI
     wifi_csi_config_t csi_config;
     memset(&csi_config, 0, sizeof(csi_config));
     csi_config.lltf_en = 1;
@@ -48,12 +51,14 @@ void CSIStreamer::setup() {
         return;
     }
     
+    // Set CSI callback AFTER socket is ready
     err = esp_wifi_set_csi_rx_cb(&csi_callback, this);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set CSI callback: %s", esp_err_to_name(err));
         return;
     }
     
+    // Enable CSI LAST
     err = esp_wifi_set_csi(true);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to enable CSI: %s", esp_err_to_name(err));
@@ -100,12 +105,8 @@ void CSIStreamer::process_csi(wifi_csi_info_t *info) {
         header.data[i] = 0;
     }
     
-    ssize_t sent = sendto(sock_fd_, &header, sizeof(header), 0,
-                          (struct sockaddr *)&dest_addr_, sizeof(dest_addr_));
-    
-    if (sent < 0) {
-        ESP_LOGW(TAG, "UDP send failed: %d", errno);
-    }
+    sendto(sock_fd_, &header, sizeof(header), 0,
+           (struct sockaddr *)&dest_addr_, sizeof(dest_addr_));
 }
 
 }  // namespace csi_streamer

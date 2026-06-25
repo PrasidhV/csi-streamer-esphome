@@ -39,7 +39,7 @@ external_components:
 
 csi_streamer:
   id: csi_stream
-  destination_host: "192.168.68.1"
+  destination_host: "192.168.68.114"
   destination_port: 5001
   sample_rate: 100
 
