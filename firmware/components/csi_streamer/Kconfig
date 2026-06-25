@@ -1,5 +1,0 @@
-config ESP_WIFI_RX_BA_WIN
-	int "WiFi RX BA window size"
-	default 4
-	help
-	  WiFi RX Block Acknowledgment window size.

@@ -1,5 +1,5 @@
 version: "1.0.0"
-description: "Raw WiFi CSI data streamer for person detection"
+description: "Raw WiFi CSI data streamer"
 dependencies:
   esp_wifi:
     version: ">=5.5.0"
@@ -8,4 +8,6 @@ dependencies:
   lwip:
     version: ">=2.1.0"
   esp_timer:
+    version: ">=5.5.0"
+  esp_hw_support:
     version: ">=5.5.0"
