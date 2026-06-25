@@ -1,12 +1,14 @@
 """
 CSI Streamer External Component for ESPHome
+Captures raw WiFi CSI data and streams via UDP.
+
+Based on Espressif esp-csi reference implementation:
+https://github.com/espressif/esp-csi
 """
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.const import CONF_ID, CONF_PORT
-from esphome.core import CORE
-import os
 
 CODEOWNERS = ["@custom"]
 DEPENDENCIES = ["wifi"]
@@ -36,24 +38,10 @@ async def to_code(config):
     ))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
 
-    # Set sdkconfig options
+    # CONFIG_PM_ENABLE is set via project-level sdkconfig.defaults
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_CSI_ENABLED", True)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_STA_DISCONNECTED_PM_ENABLE", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_TX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_AMPDU_RX_ENABLED", False)
     add_idf_sdkconfig_option("CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM", 128)
-
-    # For ESP-IDF: create CMakeLists.txt in the component directory
-    if CORE.using_esp_idf:
-        comp_dir = os.path.join(CORE.relative_build_path(""), "components", "csi_streamer")
-        cmake_content = """idf_component_register(
-    SRCS "csi_streamer.cpp"
-    INCLUDE_DIRS "."
-    REQUIRES esp_wifi esp_common lwip esp_timer esp_hw_support
-)
-"""
-        # Write CMakeLists.txt alongside the source files
-        cmake_path = os.path.join(comp_dir, "CMakeLists.txt")
-        os.makedirs(comp_dir, exist_ok=True)
-        with open(cmake_path, "w") as f:
-            f.write(cmake_content)
+    # CONFIG_ESP_WIFI_RX_BA_WIN is set via sdkconfig.defaults to avoid redefinition

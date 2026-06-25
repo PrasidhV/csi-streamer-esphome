@@ -5,6 +5,8 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  includes:
+    - csi_streamer.h
 
 esp32:
   board: esp32dev
@@ -29,16 +31,67 @@ logger:
   level: DEBUG
   baud_rate: 115200
 
-external_components:
-  - source:
-      type: local
-      path: components
-
-csi_streamer:
-  id: csi_stream
-  destination_host: "192.168.68.114"
-  destination_port: 5001
-  sample_rate: 100
-
 status_led:
   pin: GPIO2
+
+custom_component:
+  - id: csi_stream
+    lambda: |-
+      // Raw CSI streamer for ESP32
+      static int sock_fd = -1;
+      static struct sockaddr_in dest_addr_;
+      static uint32_t sequence_ = 0;
+      static bool csi_enabled_ = false;
+      static uint8_t raw_buf[52 * 2 * 2];
+      
+      if (csi_enabled_) return;
+      
+      // Wait for WiFi
+      wifi_ap_record_t ap_info;
+      if (esp_wifi_sta_get_ap_info(&ap_info) != ESP_OK) return;
+      
+      ESP_LOGI("csi", "WiFi connected, enabling CSI");
+      
+      sock_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+      if (sock_fd < 0) {
+          ESP_LOGE("csi", "socket failed: %d", errno);
+          return;
+      }
+      
+      memset(&dest_addr_, 0, sizeof(dest_addr_));
+      dest_addr_.sin_family = AF_INET;
+      dest_addr_.sin_port = htons(5001);
+      ip4_addr_t addr;
+      ip4addr_aton("192.168.68.114", &addr);
+      dest_addr_.sin_addr.s_addr = addr.addr;
+      
+      wifi_csi_config_t csi_config = {
+          .lltf_en = 1, .htltf_en = 1, .stbc_htltf2_en = 1,
+          .ltf_merge_en = 1, .channel_filter_en = 1,
+          .manu_scale = 0, .shift = 0
+      };
+      
+      esp_wifi_set_csi_config(&csi_config);
+      esp_wifi_set_csi_rx_cb([](void *ctx, wifi_csi_info_t *info) {
+          if (!info || !info->buf) return;
+          int16_t *buf = (int16_t*)info->buf;
+          int len = (info->len < 208) ? info->len : 208;
+          memcpy(raw_buf, buf, len);
+          
+          uint8_t pkt[12 + 52];
+          uint32_t seq = sequence_++;
+          memcpy(pkt, &seq, 4);
+          memcpy(pkt+4, info->mac, 6);
+          pkt[10] = (uint8_t)info->rx_ctrl.rssi;
+          
+          int num_sc = len / 2;
+          for (int i = 0; i < num_sc && i < 52; i++) {
+              int amp = abs(buf[i*2]) + abs(buf[i*2+1]);
+              pkt[12+i] = (amp > 255) ? 255 : (uint8_t)amp;
+          }
+          
+          sendto(sock_fd, pkt, 12+52, 0, (struct sockaddr*)&dest_addr_, sizeof(dest_addr_));
+      }, NULL);
+      esp_wifi_set_csi(true);
+      csi_enabled_ = true;
+      ESP_LOGI("csi", "CSI enabled, streaming to 192.168.68.114:5001");
