@@ -44,6 +44,9 @@ class CSIStreamer : public Component {
   uint16_t destination_port_ = 5000;
   uint16_t sample_rate_ = 100;
   uint32_t sequence_ = 0;
+  bool csi_enabled_ = false;
+  bool has_new_csi_ = false;
+  int wifi_wait_count_ = 0;
 };
 
 }  // namespace csi_streamer
