@@ -58,6 +58,7 @@ class CSIStreamer : public Component {
   
   CSIInfo csi_info_;
   bool has_new_csi_ = false;
+  bool setup_complete_ = false;
 };
 
 }  // namespace csi_streamer

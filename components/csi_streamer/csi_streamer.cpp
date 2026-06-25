@@ -34,6 +34,9 @@ void CSIStreamer::setup() {
     }
     dest_addr_.sin_addr.s_addr = addr.addr;
     
+    // Mark setup complete - safe to process CSI now
+    setup_complete_ = true;
+    
     // Configure WiFi CSI
     wifi_csi_config_t csi_config;
     memset(&csi_config, 0, sizeof(csi_config));
@@ -68,20 +71,20 @@ void CSIStreamer::setup() {
 }
 
 void CSIStreamer::loop() {
-    // Process any pending CSI data from ISR
-    if (has_new_csi_) {
-        has_new_csi_ = false;
-        process_csi();
-    }
+    if (!setup_complete_ || !has_new_csi_) return;
+    has_new_csi_ = false;
+    process_csi();
 }
 
 // Called from ISR - must be fast and not use any blocking calls
 void CSIStreamer::csi_callback(void *ctx, wifi_csi_info_t *info) {
     CSIStreamer *self = static_cast<CSIStreamer *>(ctx);
     
-    // Copy raw CSI data out of the ISR context immediately
+    // Don't buffer data until setup is complete
+    if (!self->setup_complete_) return;
     if (info == nullptr || info->buf == nullptr) return;
     
+    // Copy raw CSI data out of the ISR context immediately
     self->csi_info_.buf_len = info->len;
     memcpy(self->csi_info_.mac, info->mac, 6);
     self->csi_info_.rssi = info->rx_ctrl.rssi;
@@ -112,21 +115,9 @@ void CSIStreamer::process_csi() {
     for (int i = 0; i < num_sc; i++) {
         int16_t real = csi_buf[i * 2];
         int16_t imag = csi_buf[i * 2 + 1];
-        // Integer approximation of amplitude (no sqrtf needed)
-        int32_t amp = (int32_t)real * real + (int32_t)imag * imag;
-        // Fast approximate sqrt
-        if (amp > 65025) {  // 255^2
-            header.data[i] = 255;
-        } else {
-            // Integer sqrt approximation
-            int32_t x = amp;
-            int32_t y = (x + 1) / 2;
-            while (y < x) {
-                x = y;
-                y = (x + amp / x) / 2;
-            }
-            header.data[i] = (uint8_t)(x > 255 ? 255 : x);
-        }
+        // Simple amplitude: |real| + |imag| (clamped to 255)
+        int amp = (int)abs(real) + (int)abs(imag);
+        header.data[i] = (amp > 255) ? 255 : (uint8_t)amp;
     }
     
     for (int i = num_sc; i < 52; i++) {
