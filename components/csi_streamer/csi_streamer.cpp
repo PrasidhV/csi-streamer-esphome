@@ -9,8 +9,6 @@
 namespace esphome {
 namespace csi_streamer {
 
-static const char *const TAG = "csi_streamer";
-
 void CSIStreamer::setup() {
     ESP_LOGI(TAG, "CSI Streamer setup");
     
