@@ -11,10 +11,13 @@ namespace csi_streamer {
 
 static const char *const TAG = "csi_streamer";
 
+// Raw CSI buffer size: 52 subcarriers * 2 (real+imag) * 2 bytes = 208 bytes
+static const int RAW_BUF_SIZE = 52 * 2 * 2;
+
 void CSIStreamer::setup() {
     ESP_LOGI(TAG, "CSI Streamer setup");
     
-    // Create UDP socket FIRST before enabling CSI
+    // Create UDP socket FIRST
     sock_fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock_fd_ < 0) {
         ESP_LOGE(TAG, "Failed to create UDP socket: %d", errno);
@@ -51,14 +54,12 @@ void CSIStreamer::setup() {
         return;
     }
     
-    // Set CSI callback AFTER socket is ready
     err = esp_wifi_set_csi_rx_cb(&csi_callback, this);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set CSI callback: %s", esp_err_to_name(err));
         return;
     }
     
-    // Enable CSI LAST
     err = esp_wifi_set_csi(true);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to enable CSI: %s", esp_err_to_name(err));
@@ -70,29 +71,46 @@ void CSIStreamer::setup() {
 }
 
 void CSIStreamer::loop() {
-    // Rate limiting handled by CSI callback frequency
+    // Process any pending CSI data from ISR
+    if (has_new_csi_) {
+        has_new_csi_ = false;
+        process_csi(&csi_info_);
+    }
 }
 
+// Called from ISR - must be fast and not use any blocking calls
 void CSIStreamer::csi_callback(void *ctx, wifi_csi_info_t *info) {
     CSIStreamer *self = static_cast<CSIStreamer *>(ctx);
-    self->process_csi(info);
+    
+    // Copy raw CSI data out of the ISR context immediately
+    if (info == nullptr || info->buf == nullptr) return;
+    
+    self->csi_info_.buf_len = info->len;
+    memcpy(self->csi_info_.mac, info->mac, 6);
+    self->csi_info_.rssi = info->rx_ctrl.rssi;
+    self->csi_info_.timestamp_us = esp_timer_get_time();
+    self->csi_info_.sequence = self->sequence_++;
+    
+    // Copy raw bytes directly (up to RAW_BUF_SIZE)
+    int copy_len = (info->len < RAW_BUF_SIZE) ? info->len : RAW_BUF_SIZE;
+    memcpy(self->csi_info_.raw_buf, info->buf, copy_len);
+    
+    self->has_new_csi_ = true;
 }
 
 void CSIStreamer::process_csi(wifi_csi_info_t *info) {
     if (sock_fd_ < 0) return;
-    if (info == nullptr || info->buf == nullptr) return;
     
     CSIPacketHeader header;
     header.magic = 0x43534920;  // "CSI "
-    header.sequence = sequence_++;
-    header.timestamp_us = esp_timer_get_time();
+    header.sequence = info->sequence;
+    header.timestamp_us = info->timestamp_us;
     memcpy(header.mac, info->mac, 6);
-    header.rssi = info->rx_ctrl.rssi;
+    header.rssi = info->rssi;
     header.num_subcarriers = 52;
     
-    // Extract CSI data for each subcarrier
-    int16_t *csi_buf = reinterpret_cast<int16_t *>(info->buf);
-    int num_sc = std::min(52, (int)info->len / 2);
+    int16_t *csi_buf = reinterpret_cast<int16_t *>(info->raw_buf);
+    int num_sc = std::min(52, (int)info->buf_len / 2);
     
     for (int i = 0; i < num_sc; i++) {
         int16_t real = csi_buf[i * 2];
