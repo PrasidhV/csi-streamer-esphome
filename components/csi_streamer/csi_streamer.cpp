@@ -74,7 +74,7 @@ void CSIStreamer::loop() {
     // Process any pending CSI data from ISR
     if (has_new_csi_) {
         has_new_csi_ = false;
-        process_csi(&csi_info_);
+        process_csi();
     }
 }
 
@@ -98,19 +98,19 @@ void CSIStreamer::csi_callback(void *ctx, wifi_csi_info_t *info) {
     self->has_new_csi_ = true;
 }
 
-void CSIStreamer::process_csi(wifi_csi_info_t *info) {
+void CSIStreamer::process_csi() {
     if (sock_fd_ < 0) return;
     
     CSIPacketHeader header;
     header.magic = 0x43534920;  // "CSI "
-    header.sequence = info->sequence;
-    header.timestamp_us = info->timestamp_us;
-    memcpy(header.mac, info->mac, 6);
-    header.rssi = info->rssi;
+    header.sequence = csi_info_.sequence;
+    header.timestamp_us = csi_info_.timestamp_us;
+    memcpy(header.mac, csi_info_.mac, 6);
+    header.rssi = csi_info_.rssi;
     header.num_subcarriers = 52;
     
-    int16_t *csi_buf = reinterpret_cast<int16_t *>(info->raw_buf);
-    int num_sc = std::min(52, (int)info->buf_len / 2);
+    int16_t *csi_buf = reinterpret_cast<int16_t *>(csi_info_.raw_buf);
+    int num_sc = std::min(52, (int)csi_info_.buf_len / 2);
     
     for (int i = 0; i < num_sc; i++) {
         int16_t real = csi_buf[i * 2];
