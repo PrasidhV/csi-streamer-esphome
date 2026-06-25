@@ -1,0 +1,44 @@
+substitutions:
+  device_name: esp32-d-bedroom-csi
+  friendly_name: ESP32-D Bedroom CSI
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${device_name} Fallback"
+    password: "fallback456"
+
+api:
+  encryption:
+    key: "34LXeYYibr/vwEee19jE43lbqhr7zGtdKLvbgMAqOSY="
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+  baud_rate: 115200
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+csi_streamer:
+  id: csi_stream
+  destination_host: "192.168.68.114"
+  destination_port: 5001
+  sample_rate: 100
+
+status_led:
+  pin: GPIO2

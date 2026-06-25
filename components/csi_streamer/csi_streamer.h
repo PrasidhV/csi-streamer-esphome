@@ -21,6 +21,16 @@ struct __attribute__((packed)) CSIPacketHeader {
     uint8_t data[52];
 };
 
+// Internal CSI buffer populated by ISR
+struct CSIInfo {
+    uint8_t raw_buf[52 * 2 * 2];  // Raw CSI data buffer
+    int buf_len;
+    uint8_t mac[6];
+    int8_t rssi;
+    uint64_t timestamp_us;
+    uint32_t sequence;
+};
+
 class CSIStreamer : public Component {
  public:
   void set_destination(const std::string &host, uint16_t port) {
@@ -36,7 +46,7 @@ class CSIStreamer : public Component {
   static void csi_callback(void *ctx, wifi_csi_info_t *info);
 
  private:
-  void process_csi(wifi_csi_info_t *info);
+  void process_csi();
 
   int sock_fd_ = -1;
   struct sockaddr_in dest_addr_;
@@ -44,6 +54,8 @@ class CSIStreamer : public Component {
   uint16_t destination_port_ = 5000;
   uint16_t sample_rate_ = 100;
   uint32_t sequence_ = 0;
+  
+  CSIInfo csi_info_;
   bool csi_enabled_ = false;
   bool has_new_csi_ = false;
   int wifi_wait_count_ = 0;
