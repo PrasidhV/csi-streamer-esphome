@@ -23,18 +23,13 @@ void CSIStreamer::loop() {
         return;
     }
     
-    // Wait a few loops, then check WiFi
-    if (wifi_wait_count_ < 5) {
+    // Wait a few loops for WiFi to stabilize
+    if (wifi_wait_count_ < 3) {
         wifi_wait_count_++;
         return;
     }
     
-    wifi_ap_record_t ap_info;
-    if (esp_wifi_sta_get_ap_info(&ap_info) != ESP_OK) {
-        return;
-    }
-    
-    ESP_LOGI(TAG, "WiFi connected, initializing CSI streamer");
+    ESP_LOGI(TAG, "Initializing CSI streamer");
     
     sock_fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock_fd_ < 0) {
