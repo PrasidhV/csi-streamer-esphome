@@ -1,0 +1,4 @@
+
+# Fix ESP-IDF 5.5.4 missing defines
+CONFIG_ESP_WIFI_RX_BA_WIN=4
+CONFIG_PM_ENABLE=y
