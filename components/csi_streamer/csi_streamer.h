@@ -11,25 +11,14 @@ namespace csi_streamer {
 
 static const char *const TAG = "csi_streamer";
 
-// CSI packet header for UDP streaming
 struct __attribute__((packed)) CSIPacketHeader {
-    uint32_t magic;          // 0x43534920 = "CSI "
-    uint32_t sequence;       // Packet sequence number
-    uint64_t timestamp_us;   // Microsecond timestamp
-    uint8_t mac[6];          // Source MAC address
-    int8_t rssi;             // RSSI in dBm
-    uint8_t num_subcarriers; // Number of subcarriers
-    uint8_t data[52];        // Amplitude per subcarrier (normalized 0-255)
-};
-
-// Internal CSI buffer populated by ISR
-struct CSIInfo {
-    uint8_t raw_buf[52 * 2 * 2];  // Raw CSI data buffer
-    int buf_len;
+    uint32_t magic;
+    uint32_t sequence;
+    uint64_t timestamp_us;
     uint8_t mac[6];
     int8_t rssi;
-    uint64_t timestamp_us;
-    uint32_t sequence;
+    uint8_t num_subcarriers;
+    uint8_t data[52];
 };
 
 class CSIStreamer : public Component {
@@ -47,7 +36,7 @@ class CSIStreamer : public Component {
   static void csi_callback(void *ctx, wifi_csi_info_t *info);
 
  private:
-  void process_csi();
+  void process_csi(wifi_csi_info_t *info);
 
   int sock_fd_ = -1;
   struct sockaddr_in dest_addr_;
@@ -55,11 +44,6 @@ class CSIStreamer : public Component {
   uint16_t destination_port_ = 5000;
   uint16_t sample_rate_ = 100;
   uint32_t sequence_ = 0;
-  
-  CSIInfo csi_info_;
-  bool has_new_csi_ = false;
-  bool setup_complete_ = false;
-  bool csi_enabled_ = false;
 };
 
 }  // namespace csi_streamer
