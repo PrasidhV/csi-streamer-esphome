@@ -47,7 +47,7 @@ class CSIStreamer : public Component {
   static void csi_callback(void *ctx, wifi_csi_info_t *info);
 
  private:
-  void process_csi(wifi_csi_info_t *info);
+  void process_csi();
 
   int sock_fd_ = -1;
   struct sockaddr_in dest_addr_;
